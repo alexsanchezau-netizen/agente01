@@ -50,17 +50,18 @@ function removeTyping() {
 
 function extractAndSaveLead(text) {
   if (leadGuardado) return text;
-  const match = text.match(/LEAD_DATA:(\{.*?\})/);
+  const match = text.match(/LEAD_DATA:(\{[\s\S]*?\})/);
   if (match) {
     try {
-      const data = JSON.parse(match[1]);
+      const jsonStr = match[1].replace(/\n/g, ' ').replace(/\s+/g, ' ');
+      const data = JSON.parse(jsonStr);
       fetch(SHEETS_URL, {
         method: 'POST',
         body: JSON.stringify(data)
       }).catch(() => {});
       leadGuardado = true;
     } catch(e) {}
-    return text.replace(/LEAD_DATA:\{.*?\}/, '').trim();
+    return text.replace(/LEAD_DATA:[\s\S]*?\}/, '').trim();
   }
   return text;
 }
