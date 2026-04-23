@@ -2,7 +2,7 @@ const messagesEl = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbycV8bGipX61oz53FMOraxeXBRDHG_YdF-myhyMv2v7NDkAsXViKyybZfrrIQrWpVvR/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxdM5l3i3kDjKKQmbXPBc17wYDjT1qIcYIitwlTXuOtDJXHhM6Zv5sfpsVOp_B7MLr4/exec';
 
 const history = [];
 let leadGuardado = false;
