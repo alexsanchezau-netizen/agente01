@@ -2,7 +2,7 @@ const messagesEl = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-const API_KEY = 'TU_API_KEY_AQUI';
+const API_KEY = process.env.ANTHROPIC_API_KEY;;
 
 const history = [];
 
