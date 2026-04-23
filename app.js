@@ -59,20 +59,12 @@ function extractAndSaveLead(text) {
         body: JSON.stringify(data)
       }).catch(() => {});
       leadGuardado = true;
-      showLeadSaved();
     } catch(e) {}
     return text.replace(/LEAD_DATA:\{.*?\}/, '').trim();
   }
   return text;
 }
 
-function showLeadSaved() {
-  const div = document.createElement('div');
-  div.style.cssText = 'text-align:center; font-size:11px; color:#4ade80; padding:4px 0; opacity:0.7;';
-  div.textContent = '✓ Lead guardado en Google Sheets';
-  messagesEl.appendChild(div);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
 
 async function sendMessage() {
   const text = userInput.value.trim();
