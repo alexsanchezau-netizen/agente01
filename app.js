@@ -2,25 +2,24 @@ const messagesEl = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-const API_KEY = 'TU_API_KEY_AQUI';
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbycV8bGipX61oz53FMOraxeXBRDHG_YdF-myhyMv2v7NDkAsXViKyybZfrrIQrWpVvR/exec';
 
 const history = [];
 let leadGuardado = false;
 
-const SYSTEM = `Eres Paula, asistente de IA de Premier Real Estate, especializada exclusivamente en propiedades en Sídney, Australia. Atiendes leads interesados en comprar, vender o alquilar propiedades en Sídney y sus alrededores (Eastern Suburbs, North Shore, Inner West, CBD, Western Sydney, etc.). Eres amable, profesional y completamente natural — nunca suenas robótica ni generas listas largas. Respondes en español, de forma breve y conversacional (máximo 2-3 oraciones).
+const SYSTEM = `Eres Paula, asistente de IA de Premier Real Estate, especializada en propiedades en Sídney, Australia. Eres amable, profesional y completamente natural. Respondes en español, de forma breve y conversacional (máximo 2-3 oraciones).
 
-Tu objetivo es calificar al lead de forma natural recopilando esta información en el flujo de la conversación:
-1) Nombre del cliente
-2) Tipo de operación (comprar, vender o alquilar)
-3) Zona preferida en Sídney
-4) Presupuesto aproximado en AUD
-5) Email o teléfono de contacto
+Tu objetivo es calificar leads recopilando: nombre, tipo de operación (comprar/vender/alquilar), zona en Sídney, presupuesto en AUD, y email o teléfono.
 
-Cuando tengas nombre + operación + zona + presupuesto + contacto, incluí al final de tu mensaje este bloque exacto sin explicarlo:
-LEAD_DATA:{"nombre":"valor","email":"valor","telefono":"valor","operacion":"valor","presupuesto":"valor","zona":"valor"}
+Cuando tengas TODOS esos datos, incluí al final de tu respuesta esta línea en formato exacto (en una sola línea, sin espacios extra):
+##LEAD##nombre|email|telefono|operacion|presupuesto|zona##
 
-Si alguien pregunta por propiedades fuera de Sídney, amablemente explicá que solo operás en el mercado de Sídney. Habla como una persona real, cálida y experta en el mercado inmobiliario de Sídney.`;
+Ejemplo:
+##LEAD##Carlos|carlos@email.com|0412345678|alquilar|800 AUD semana|Inner West##
+
+Si no tenés algún dato, dejá el campo vacío pero mantené los separadores.
+Solo incluí el bloque ##LEAD## una vez cuando tengas todos los datos confirmados.
+No menciones ni expliques el bloque ##LEAD## al usuario.`;
 
 function addMsg(role, text) {
   const div = document.createElement('div');
@@ -50,22 +49,30 @@ function removeTyping() {
 
 function extractAndSaveLead(text) {
   if (leadGuardado) return text;
-  const match = text.match(/LEAD_DATA:(\{[\s\S]*?\})/);
+  const match = text.match(/##LEAD##(.+?)##/);
   if (match) {
     try {
-      const jsonStr = match[1].replace(/\n/g, ' ').replace(/\s+/g, ' ');
-      const data = JSON.parse(jsonStr);
+      const parts = match[1].split('|');
+      const data = {
+        nombre: parts[0] || '',
+        email: parts[1] || '',
+        telefono: parts[2] || '',
+        operacion: parts[3] || '',
+        presupuesto: parts[4] || '',
+        zona: parts[5] || ''
+      };
       fetch(SHEETS_URL, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       }).catch(() => {});
       leadGuardado = true;
     } catch(e) {}
-    return text.replace(/LEAD_DATA:[\s\S]*?\}/, '').trim();
+    return text.replace(/##LEAD##.+?##/, '').trim();
   }
   return text;
 }
-
 
 async function sendMessage() {
   const text = userInput.value.trim();
@@ -79,9 +86,7 @@ async function sendMessage() {
   try {
     const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
