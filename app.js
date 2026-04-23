@@ -3,7 +3,7 @@ const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
 const API_KEY = 'TU_API_KEY_AQUI';
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbycV8bGipX61oz53FMOraxeXBRDHG_YdF-myhyMv2v7NDkAsXViKyybZfrrIQrWpVvR/exec';
+const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/18AgdyGE1NFA84HyphEH0EiE8t6zeEdZUnmNBPNUzNbA/edit?gid=0#gid=0';
 
 const history = [];
 let leadGuardado = false;
