@@ -2,11 +2,25 @@ const messagesEl = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-const API_KEY = process.env.ANTHROPIC_API_KEY;;
+const API_KEY = 'TU_API_KEY_AQUI';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbycV8bGipX61oz53FMOraxeXBRDHG_YdF-myhyMv2v7NDkAsXViKyybZfrrIQrWpVvR/exec';
 
 const history = [];
+let leadGuardado = false;
 
-const SYSTEM = `Eres Paula, asistente de IA de Premier Real Estate, especializada exclusivamente en propiedades en Sídney, Australia. Atiendes leads interesados en comprar, vender o alquilar propiedades en Sídney y sus alrededores (Eastern Suburbs, North Shore, Inner West, CBD, Western Sydney, etc.). Eres amable, profesional y completamente natural — nunca suenas robótica ni generas listas largas. Respondes en español, de forma breve y conversacional (máximo 2-3 oraciones). Tu objetivo es: 1) entender qué busca el cliente en Sídney, 2) calificarlo con preguntas naturales sobre tipo de operación, presupuesto aproximado en dólares australianos (AUD), zona preferida dentro de Sídney, y urgencia, 3) proponer agendar una llamada rápida con un asesor. Si alguien pregunta por propiedades fuera de Sídney, amablemente explicá que solo operás en el mercado de Sídney. Habla como una persona real, cálida y experta en el mercado inmobiliario de Sídney.`;
+const SYSTEM = `Eres Paula, asistente de IA de Premier Real Estate, especializada exclusivamente en propiedades en Sídney, Australia. Atiendes leads interesados en comprar, vender o alquilar propiedades en Sídney y sus alrededores (Eastern Suburbs, North Shore, Inner West, CBD, Western Sydney, etc.). Eres amable, profesional y completamente natural — nunca suenas robótica ni generas listas largas. Respondes en español, de forma breve y conversacional (máximo 2-3 oraciones).
+
+Tu objetivo es calificar al lead de forma natural recopilando esta información en el flujo de la conversación:
+1) Nombre del cliente
+2) Tipo de operación (comprar, vender o alquilar)
+3) Zona preferida en Sídney
+4) Presupuesto aproximado en AUD
+5) Email o teléfono de contacto
+
+Cuando tengas nombre + operación + zona + presupuesto + contacto, incluí al final de tu mensaje este bloque exacto sin explicarlo:
+LEAD_DATA:{"nombre":"valor","email":"valor","telefono":"valor","operacion":"valor","presupuesto":"valor","zona":"valor"}
+
+Si alguien pregunta por propiedades fuera de Sídney, amablemente explicá que solo operás en el mercado de Sídney. Habla como una persona real, cálida y experta en el mercado inmobiliario de Sídney.`;
 
 function addMsg(role, text) {
   const div = document.createElement('div');
@@ -34,6 +48,32 @@ function removeTyping() {
   if (t) t.remove();
 }
 
+function extractAndSaveLead(text) {
+  if (leadGuardado) return text;
+  const match = text.match(/LEAD_DATA:(\{.*?\})/);
+  if (match) {
+    try {
+      const data = JSON.parse(match[1]);
+      fetch(SHEETS_URL, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).catch(() => {});
+      leadGuardado = true;
+      showLeadSaved();
+    } catch(e) {}
+    return text.replace(/LEAD_DATA:\{.*?\}/, '').trim();
+  }
+  return text;
+}
+
+function showLeadSaved() {
+  const div = document.createElement('div');
+  div.style.cssText = 'text-align:center; font-size:11px; color:#4ade80; padding:4px 0; opacity:0.7;';
+  div.textContent = '✓ Lead guardado en Google Sheets';
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
 async function sendMessage() {
   const text = userInput.value.trim();
   if (!text) return;
@@ -44,23 +84,21 @@ async function sendMessage() {
   history.push({ role: 'user', content: text });
   showTyping();
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         system: SYSTEM,
         messages: history
       })
     });
     const data = await res.json();
-    const reply = data.content?.[0]?.text || 'Un momento, déjame verificar esa información.';
+    let reply = data.content?.[0]?.text || 'Un momento, déjame verificar esa información.';
+    reply = extractAndSaveLead(reply);
     removeTyping();
     addMsg('bot', reply);
     history.push({ role: 'assistant', content: reply });
